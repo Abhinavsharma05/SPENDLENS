@@ -1,15 +1,11 @@
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
+const { Pool } = require('pg');
+const { PrismaPg } = require('@prisma/adapter-pg');
 
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
 
-// Prisma 7 pattern: Using adapter property in the constructor
-// The user requested adapter: {} as a placeholder/pattern
-const prisma = new PrismaClient({
-  adapter: {
-    url: process.env.DATABASE_URL
-  }
-});
-
-
+const prisma = new PrismaClient({ adapter });
 
 module.exports = prisma;
