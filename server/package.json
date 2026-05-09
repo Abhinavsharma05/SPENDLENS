@@ -9,11 +9,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
     "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",
-    "prisma": "^7.8.0"
+    "nanoid": "^3.3.12",
+    "prisma": "^7.8.0",
+    "resend": "^6.12.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2"
   }
 }
