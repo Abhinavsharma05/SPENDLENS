@@ -1,1 +1,6 @@
-﻿# .GITIGNORE
+node_modules/
+dist/
+build/
+.env
+pdf_text.txt
+.DS_Store
