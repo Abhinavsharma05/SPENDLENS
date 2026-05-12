@@ -3,6 +3,55 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { tools as toolsData } from '../utils/pricingData';
 
+// Client-side intelligent summary generator
+const generateClientSummary = (results) => {
+  const { totalMonthlySavings, totalAnnualSavings, toolResults, originalData } = results;
+  const teamSize = originalData?.teamSize || 1;
+  const useCase = originalData?.useCase || 'mixed';
+  const totalCurrentSpend = toolResults.reduce((sum, t) => sum + Number(t.spend), 0);
+
+  // Find the tool with the highest potential savings
+  const sortedByWaste = [...toolResults].sort((a, b) => (b.result?.savings || 0) - (a.result?.savings || 0));
+  const biggestWaste = sortedByWaste[0];
+  const biggestWasteName = biggestWaste ? (toolsData[biggestWaste.toolId]?.name || biggestWaste.toolId) : null;
+  const biggestWasteSavings = biggestWaste?.result?.savings || 0;
+
+  // Check for redundancy
+  const chatTools = toolResults.filter(t => ['chatgpt', 'claude', 'gemini'].includes(t.toolId));
+  const codingTools = toolResults.filter(t => ['cursor', 'github_copilot'].includes(t.toolId));
+  const hasRedundantChat = chatTools.length > 1;
+  const hasRedundantCoding = codingTools.length > 1;
+
+  let summary = '';
+
+  if (totalMonthlySavings <= 0 && toolResults.length > 0) {
+    summary = `Your ${teamSize}-person team's AI stack of ${toolResults.length} tool${toolResults.length > 1 ? 's' : ''} totaling $${totalCurrentSpend}/mo is well-optimized for ${useCase} workflows. No immediate cost reductions are recommended. Consider revisiting in 3 months as AI pricing evolves rapidly.`;
+  } else {
+    // Opening
+    summary = `Your ${teamSize}-person team spends $${totalCurrentSpend.toLocaleString()}/mo across ${toolResults.length} AI tool${toolResults.length > 1 ? 's' : ''}. `;
+
+    // Biggest opportunity
+    if (biggestWasteName && biggestWasteSavings > 0) {
+      summary += `The biggest optimization opportunity is ${biggestWasteName}, where ${biggestWaste.result?.recommendedAction?.toLowerCase() || 'plan adjustment'} could save $${Math.round(biggestWasteSavings)}/mo. `;
+    }
+
+    // Redundancy insight
+    if (hasRedundantChat) {
+      const chatNames = chatTools.map(t => toolsData[t.toolId]?.name).join(' and ');
+      summary += `You're running ${chatNames} simultaneously—consolidating to one could eliminate redundant subscriptions. `;
+    }
+    if (hasRedundantCoding) {
+      const codeNames = codingTools.map(t => toolsData[t.toolId]?.name).join(' and ');
+      summary += `Both ${codeNames} are active; most teams see no benefit from dual coding assistants. `;
+    }
+
+    // Closing
+    summary += `Total recoverable savings: $${Math.round(totalMonthlySavings).toLocaleString()}/mo ($${Math.round(totalAnnualSavings).toLocaleString()}/yr).`;
+  }
+
+  return summary;
+};
+
 export default function Result() {
   const { id } = useParams();
   const [results, setResults] = useState(null);
@@ -21,6 +70,11 @@ export default function Result() {
   }, [id]);
 
   const fetchSummary = async (data) => {
+    // Generate a smart client-side summary immediately
+    const clientSummary = generateClientSummary(data);
+    setAiSummary(clientSummary);
+
+    // Then try to get an even better AI-powered summary from the backend
     try {
       const res = await fetch('http://localhost:5000/api/audit/summary', {
         method: 'POST',
@@ -29,12 +83,12 @@ export default function Result() {
       });
       if (res.ok) {
         const json = await res.json();
-        setAiSummary(json.summary);
-      } else {
-        setAiSummary("Based on your usage and team size, we identified multiple opportunities to optimize your AI tool spend without sacrificing capability.");
+        if (json.summary && json.summary.length > 50) {
+          setAiSummary(json.summary);
+        }
       }
     } catch (err) {
-      setAiSummary("Based on your usage and team size, we identified multiple opportunities to optimize your AI tool spend without sacrificing capability.");
+      // Client-side summary already set, no action needed
     }
   };
 
@@ -96,13 +150,13 @@ export default function Result() {
                   className="glass-panel p-6 rounded-2xl border-l-4 border-l-blue-500 relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 bg-slate-900/50 px-4 py-2 rounded-bl-xl text-emerald-400 font-mono font-bold">
-                    Save ${t.result.savings}/mo
+                    Save ${Math.round(t.result.savings)}/mo
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">{toolsData[t.toolId].name}</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                     <div>
                       <span className="text-slate-500">Current Spend:</span>
-                      <span className="ml-2 text-white font-mono">${t.originalSpend}/mo</span>
+                      <span className="ml-2 text-white font-mono">${t.spend}/mo</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Seats:</span>
