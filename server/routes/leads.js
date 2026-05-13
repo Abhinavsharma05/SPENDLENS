@@ -1,34 +1,43 @@
 const express = require('express');
 const router = express.Router();
 const { nanoid } = require("nanoid");
-const { createAudit } = require("../services/dbService");
+const { createAudit, updateAuditWithLead } = require("../services/dbService");
 const { sendAuditConfirmation } = require("../services/emailService");
 
-// Capture lead and save audit
+// Capture lead and update audit
 router.post("/", async (req, res) => {
-  const { auditData, leadInfo, aiSummary } = req.body;
+  const { auditData, leadInfo, aiSummary, publicId: existingPublicId } = req.body;
   
-  if (!auditData || !leadInfo || !leadInfo.email) {
-    return res.status(400).json({ error: "Missing required fields" });
+  if (!leadInfo || !leadInfo.email) {
+    return res.status(400).json({ error: "Missing email" });
   }
 
-  const publicId = nanoid(10);
+  let publicId = existingPublicId;
 
   try {
-    const audit = await createAudit({
-      publicId,
-      toolsData: auditData.tools,
-      savingsData: auditData.savings,
-      aiSummary,
-      ...leadInfo
-    });
+    if (publicId) {
+      // Update existing audit
+      await updateAuditWithLead(publicId, leadInfo);
+    } else if (auditData) {
+      // Create new audit if none exists
+      publicId = nanoid(10);
+      await createAudit({
+        publicId,
+        toolsData: auditData.toolResults,
+        savingsData: {
+          totalMonthlySavings: auditData.totalMonthlySavings,
+          totalAnnualSavings: auditData.totalAnnualSavings
+        },
+        aiSummary,
+        ...leadInfo
+      });
+    } else {
+      return res.status(400).json({ error: "Missing audit data or ID" });
+    }
 
     // Send transactional email
-    await sendAuditConfirmation(
-      leadInfo.email, 
-      publicId, 
-      auditData.savings.totalAnnualSavings
-    );
+    const savings = auditData?.totalAnnualSavings || 0;
+    await sendAuditConfirmation(leadInfo.email, publicId, savings);
 
     res.json({ publicId, success: true });
   } catch (error) {

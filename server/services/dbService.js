@@ -30,4 +30,16 @@ const getAuditByPublicId = async (publicId) => {
   });
 };
 
-module.exports = { createAudit, getAuditByPublicId };
+const updateAuditWithLead = async (publicId, leadInfo) => {
+  return await prisma.audit.update({
+    where: { publicId },
+    data: {
+      email: leadInfo.email,
+      companyName: leadInfo.companyName,
+      role: leadInfo.role,
+      teamSize: leadInfo.teamSize?.toString(),
+    }
+  });
+};
+
+module.exports = { createAudit, getAuditByPublicId, updateAuditWithLead };

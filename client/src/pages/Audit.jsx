@@ -60,16 +60,33 @@ export default function Audit() {
     }));
   };
 
-  const runAudit = () => {
+  const runAudit = async () => {
     const payload = {
       teamSize: globalState.teamSize,
       useCase: globalState.useCase,
       tools: selectedTools
     };
     const results = auditEngine(payload);
-    // In a real app we'd save to DB here, but let's pass state for now
-    localStorage.setItem('spendlens_results', JSON.stringify(results));
-    navigate('/r/draft');
+    
+    // Save to DB and get a unique ID
+    try {
+      const res = await fetch('http://localhost:5000/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auditData: results })
+      });
+      if (res.ok) {
+        const { publicId } = await res.json();
+        navigate(`/r/${publicId}`);
+      } else {
+        // Fallback for demo if backend fails
+        localStorage.setItem('spendlens_results', JSON.stringify(results));
+        navigate('/r/draft');
+      }
+    } catch (err) {
+      localStorage.setItem('spendlens_results', JSON.stringify(results));
+      navigate('/r/draft');
+    }
   };
 
   return (

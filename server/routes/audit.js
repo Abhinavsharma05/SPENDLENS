@@ -1,7 +1,32 @@
 const express = require('express');
 const router = express.Router();
+const { nanoid } = require("nanoid");
 const { generateSummary } = require("../services/summaryService");
-const { getAuditByPublicId } = require("../services/dbService");
+const { createAudit, getAuditByPublicId } = require("../services/dbService");
+
+// Save initial audit
+router.post("/", async (req, res) => {
+  const { auditData, aiSummary } = req.body;
+  if (!auditData) return res.status(400).json({ error: "Missing audit data" });
+
+  const publicId = nanoid(10);
+  try {
+    await createAudit({
+      publicId,
+      toolsData: auditData.toolResults,
+      savingsData: {
+        totalMonthlySavings: auditData.totalMonthlySavings,
+        totalAnnualSavings: auditData.totalAnnualSavings
+      },
+      aiSummary,
+      teamSize: auditData.originalData?.teamSize?.toString(),
+    });
+    res.json({ publicId });
+  } catch (error) {
+    console.error("Save Audit Error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // Generate AI summary
 router.post("/summary", async (req, res) => {

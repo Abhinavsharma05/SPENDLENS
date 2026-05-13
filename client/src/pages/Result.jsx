@@ -61,14 +61,41 @@ export default function Result() {
   const [leadCaptured, setLeadCaptured] = useState(false);
 
   useEffect(() => {
-    // For MVP, we're loading from localStorage. In production this fetches from backend via `id`
-    const saved = localStorage.getItem('spendlens_results');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setResults(parsed);
-      fetchSummary(parsed);
+    if (id === 'draft') {
+      const saved = localStorage.getItem('spendlens_results');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setResults(parsed);
+        fetchSummary(parsed);
+      }
+    } else {
+      fetchAudit();
     }
   }, [id]);
+
+  const fetchAudit = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/audit/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        // The data from DB is slightly different structure
+        const formattedResults = {
+          toolResults: data.toolsData,
+          totalMonthlySavings: data.savingsData.totalMonthlySavings,
+          totalAnnualSavings: data.savingsData.totalAnnualSavings,
+          originalData: { teamSize: data.teamSize }
+        };
+        setResults(formattedResults);
+        if (data.aiSummary) {
+          setAiSummary(data.aiSummary);
+        } else {
+          fetchSummary(formattedResults);
+        }
+      }
+    } catch (err) {
+      console.error("Fetch Audit Error:", err);
+    }
+  };
 
   const fetchSummary = async (data) => {
     // Generate a smart client-side summary immediately
@@ -96,11 +123,16 @@ export default function Result() {
   const handleCapture = (e) => {
     e.preventDefault();
     setLeadCaptured(true);
-    // Submit to /api/leads
+    // Submit to /api/leads with existing ID
     fetch('http://localhost:5000/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, results })
+      body: JSON.stringify({ 
+        email, 
+        publicId: id === 'draft' ? null : id,
+        auditData: id === 'draft' ? results : null,
+        aiSummary
+      })
     }).catch(() => {});
   };
 
