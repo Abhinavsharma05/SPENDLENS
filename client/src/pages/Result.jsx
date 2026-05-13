@@ -75,7 +75,7 @@ export default function Result() {
 
   const fetchAudit = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/audit/${id}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/audit/${id}`);
       if (res.ok) {
         const data = await res.json();
         // The data from DB is slightly different structure
@@ -104,7 +104,7 @@ export default function Result() {
 
     // Then try to get an even better AI-powered summary from the backend
     try {
-      const res = await fetch('http://localhost:5000/api/audit/summary', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/audit/summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ auditData: data })
@@ -124,7 +124,7 @@ export default function Result() {
     e.preventDefault();
     setLeadCaptured(true);
     // Submit to /api/leads with existing ID
-    fetch('http://localhost:5000/api/leads', {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
