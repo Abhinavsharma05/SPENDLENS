@@ -30,7 +30,8 @@ const generateFallbackSummary = (auditData) => {
 
   if (totalMonthly > 0) {
     summary += `We identified ${actionable} actionable optimization${actionable !== 1 ? 's' : ''}. `;
-    summary += `Your largest opportunity: ${topAction.toLowerCase()} on ${topName} could recover ~$${topSavings}/mo. `;
+    const currentSpend = Math.round(top?.spend || 0);
+    summary += `Your largest opportunity: ${topAction.toLowerCase()} on ${topName}. You are currently paying $${currentSpend}/mo, but this change could recover ~$${topSavings}/mo (reducing its cost to $${Math.round(top?.result?.newSpend || 0)}/mo). `;
     summary += `Total projected savings: $${Math.round(totalMonthly).toLocaleString()}/mo ($${Math.round(totalAnnual).toLocaleString()}/yr). `;
     
     if (totalMonthly > 500) {
@@ -57,7 +58,7 @@ const generateSummary = async (auditData) => {
       max_tokens: 300,
       messages: [{ 
         role: "user", 
-        content: `You are a CFO-level AI spend analyst. Generate a concise ~120-word audit summary for this team's AI tool spend data. Include specific dollar amounts, name the tools, and give 2-3 concrete recommendations. Be direct and professional.
+        content: `You are a CFO-level AI spend analyst. Generate a concise ~120-word audit summary for this team's AI tool spend data. For each recommendation, explicitly mention what they are currently paying versus the new price after optimization. Include specific dollar amounts, name the tools, and give 2-3 concrete recommendations. Be direct and professional.
 
 Audit Data:
 - Team Size: ${auditData.originalData?.teamSize || 'Unknown'}
@@ -70,6 +71,7 @@ Audit Data:
           spend: t.spend,
           seats: t.seats,
           action: t.result?.recommendedAction,
+          recommendedSpend: Math.round(t.result?.newSpend || 0),
           savings: Math.round(t.result?.savings || 0)
         })) || [])}
 

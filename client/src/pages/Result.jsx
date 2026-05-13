@@ -32,7 +32,8 @@ const generateClientSummary = (results) => {
 
     // Biggest opportunity
     if (biggestWasteName && biggestWasteSavings > 0) {
-      summary += `The biggest optimization opportunity is ${biggestWasteName}, where ${biggestWaste.result?.recommendedAction?.toLowerCase() || 'plan adjustment'} could save $${Math.round(biggestWasteSavings)}/mo. `;
+      const currentSpend = biggestWaste.spend;
+      summary += `The biggest optimization opportunity is ${biggestWasteName}. You are currently paying $${currentSpend}/mo; however, ${biggestWaste.result?.recommendedAction?.toLowerCase() || 'plan adjustment'} could save $${Math.round(biggestWasteSavings)}/mo. `;
     }
 
     // Redundancy insight
@@ -103,14 +104,14 @@ export default function Result() {
     }).catch(() => {});
   };
 
-  if (!results) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">Loading Audit Data...</div>;
+  if (!results) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex items-center justify-center">Loading Audit Data...</div>;
 
   const { totalMonthlySavings, totalAnnualSavings, toolResults } = results;
   const isHighSavings = totalMonthlySavings > 500;
   const isOptimal = totalMonthlySavings < 100;
 
   return (
-    <main className="min-h-screen bg-slate-950 p-6 perspective-1000">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 perspective-1000 transition-colors duration-300">
       <div className="max-w-5xl mx-auto py-12">
         
         <Link to="/" className="text-blue-400 hover:text-blue-300 mb-8 inline-block">&larr; Back to Home</Link>
@@ -121,7 +122,7 @@ export default function Result() {
           transition={{ duration: 0.8, type: "spring" }}
           className="text-center mb-16"
         >
-          <h1 className="text-3xl text-slate-400 mb-4 tracking-tight">Your Potential Savings</h1>
+          <h1 className="text-3xl text-slate-600 dark:text-slate-400 mb-4 tracking-tight font-bold">Your Potential Savings</h1>
           <div className="text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 via-emerald-500 to-teal-700 drop-shadow-2xl">
             ${totalAnnualSavings.toLocaleString()}
             <span className="text-2xl text-emerald-500/50 block mt-2">/ year</span>
@@ -135,12 +136,12 @@ export default function Result() {
               animate={{ opacity: 1, x: 0 }}
               className="glass-panel p-8 rounded-3xl"
             >
-              <h2 className="text-2xl font-bold text-white mb-4">AI Executive Summary</h2>
-              <p className="text-slate-300 leading-relaxed text-lg">{aiSummary}</p>
+              <h2 className="text-2xl font-bold text-slate-950 dark:text-white mb-4">AI Executive Summary</h2>
+              <p className="text-slate-800 dark:text-slate-300 leading-relaxed text-lg font-medium">{aiSummary}</p>
             </motion.div>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-white mt-8 mb-4">Tool Breakdown</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-8 mb-4">Tool Breakdown</h2>
               {toolResults.map((t, i) => (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
@@ -152,20 +153,20 @@ export default function Result() {
                   <div className="absolute top-0 right-0 bg-slate-900/50 px-4 py-2 rounded-bl-xl text-emerald-400 font-mono font-bold">
                     Save ${Math.round(t.result.savings)}/mo
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">{toolsData[t.toolId].name}</h3>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{toolsData[t.toolId].name}</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                     <div>
-                      <span className="text-slate-500">Current Spend:</span>
-                      <span className="ml-2 text-white font-mono">${t.spend}/mo</span>
+                      <span className="text-slate-600 dark:text-slate-500 font-bold">Current Spend:</span>
+                      <span className="ml-2 text-slate-950 dark:text-white font-mono font-bold">${t.spend}/mo</span>
                     </div>
                     <div>
-                      <span className="text-slate-500">Seats:</span>
-                      <span className="ml-2 text-white font-mono">{t.seats}</span>
+                      <span className="text-slate-600 dark:text-slate-500 font-bold">Seats:</span>
+                      <span className="ml-2 text-slate-950 dark:text-white font-mono font-bold">{t.seats}</span>
                     </div>
                   </div>
                   <div className="bg-blue-500/10 rounded-lg p-4">
-                    <div className="font-bold text-blue-300 mb-1">Recommended Action: {t.result.recommendedAction}</div>
-                    <p className="text-slate-300 text-sm">{t.result.reason}</p>
+                    <div className="font-bold text-blue-700 dark:text-blue-300 mb-1">Recommended Action: {t.result.recommendedAction}</div>
+                    <p className="text-slate-700 dark:text-slate-300 text-sm font-medium">{t.result.reason}</p>
                   </div>
                 </motion.div>
               ))}
@@ -209,7 +210,7 @@ export default function Result() {
                     placeholder="Work Email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-950/50 border border-slate-700 rounded-xl p-3 text-white focus:border-blue-500 outline-none"
+                    className="w-full bg-white dark:bg-slate-950/50 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white focus:border-blue-500 outline-none"
                   />
                   <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors">
                     {isHighSavings ? 'Book Free Consultation' : 'Send me the Report'}

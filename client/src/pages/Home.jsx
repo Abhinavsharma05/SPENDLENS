@@ -5,11 +5,11 @@ import { Float, MeshDistortMaterial, Sphere, Stars } from '@react-three/drei';
 
 function AnimatedBackground() {
   return (
-    <div className="absolute inset-0 -z-10 bg-slate-950 overflow-hidden">
+    <div className="absolute inset-0 -z-10 bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
       <Canvas camera={{ position: [0, 0, 5] }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[2, 5, 2]} intensity={1} />
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
         
         <Float speed={2} rotationIntensity={1.5} floatIntensity={2}>
           <Sphere args={[1, 64, 64]} position={[-2, 1, -2]} scale={1.2}>
@@ -35,7 +35,7 @@ function AnimatedBackground() {
           </Sphere>
         </Float>
       </Canvas>
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-950/90 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-50/90 dark:to-slate-950/90 pointer-events-none" />
     </div>
   );
 }
@@ -65,7 +65,7 @@ export default function Home() {
           <span className="text-gradient">AI Infrastructure</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
           The Mint for AI tool spend. Instantly audit your startup's AI subscriptions—Cursor, Claude, ChatGPT, and more—to discover downgrades, alternatives, and thousands in annual savings.
         </p>
 
@@ -98,9 +98,9 @@ export default function Home() {
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold">C</div>
-            <div className="font-semibold">Claude Pro</div>
+            <div className="font-semibold text-slate-900 dark:text-white">Claude Pro</div>
           </div>
-          <div className="text-red-400 text-sm">Overpaying by $240/yr</div>
+          <div className="text-red-500 dark:text-red-400 text-sm">Overpaying by $240/yr</div>
         </motion.div>
       </div>
 
@@ -112,9 +112,9 @@ export default function Home() {
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">Gt</div>
-            <div className="font-semibold">Cursor Business</div>
+            <div className="font-semibold text-slate-900 dark:text-white">Cursor Business</div>
           </div>
-          <div className="text-emerald-400 text-sm">Downgrade to Pro available</div>
+          <div className="text-emerald-600 dark:text-emerald-400 text-sm">Downgrade to Pro available</div>
         </motion.div>
       </div>
     </main>

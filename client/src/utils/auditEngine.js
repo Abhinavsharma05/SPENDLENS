@@ -68,7 +68,7 @@ export const evaluateTool = (tool, globalState) => {
     }
   }
 
-  return { recommendedAction, savings, reason, originalSpend: spend };
+  return { recommendedAction, savings, reason, originalSpend: spend, newSpend: Math.max(0, spend - savings) };
 };
 
 export const auditEngine = (data) => {
