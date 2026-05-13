@@ -70,7 +70,7 @@ export default function Audit() {
     
     // Save to DB and get a unique ID
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/audit`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://spendlens-7nbz.onrender.com'}/api/audit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ auditData: results })
