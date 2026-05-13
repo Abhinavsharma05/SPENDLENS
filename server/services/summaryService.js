@@ -1,90 +1,73 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const { Anthropic } = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Primary: Anthropic (as per assignment preference)
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 
-/**
- * Generates a data-driven fallback summary when the AI API is unavailable.
- */
-const generateFallbackSummary = (auditData) => {
-  const totalMonthly = auditData.totalMonthlySavings || 0;
-  const totalAnnual = auditData.totalAnnualSavings || 0;
-  const toolResults = auditData.toolResults || [];
-  const teamSize = auditData.originalData?.teamSize || 'your';
-  const useCase = auditData.originalData?.useCase || 'general';
-
-  const totalCurrentSpend = toolResults.reduce((sum, t) => sum + Number(t.spend || 0), 0);
-
-  // Find tool with biggest savings
-  const sorted = [...toolResults].sort((a, b) => (b.result?.savings || 0) - (a.result?.savings || 0));
-  const top = sorted[0];
-  const topName = top?.toolId?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'your primary tool';
-  const topSavings = Math.round(top?.result?.savings || 0);
-  const topAction = top?.result?.recommendedAction || 'optimizing your plan';
-
-  // Count actionable items
-  const actionable = toolResults.filter(t => t.result?.savings > 0).length;
-
-  let summary = `Audit complete for a ${teamSize}-person team (${useCase} focus) spending $${totalCurrentSpend.toLocaleString()}/mo across ${toolResults.length} AI tool${toolResults.length !== 1 ? 's' : ''}. `;
-
-  if (totalMonthly > 0) {
-    summary += `We identified ${actionable} actionable optimization${actionable !== 1 ? 's' : ''}. `;
-    const currentSpend = Math.round(top?.spend || 0);
-    summary += `Your largest opportunity: ${topAction.toLowerCase()} on ${topName}. You are currently paying $${currentSpend}/mo, but this change could recover ~$${topSavings}/mo (reducing its cost to $${Math.round(top?.result?.newSpend || 0)}/mo). `;
-    summary += `Total projected savings: $${Math.round(totalMonthly).toLocaleString()}/mo ($${Math.round(totalAnnual).toLocaleString()}/yr). `;
-    
-    if (totalMonthly > 500) {
-      summary += `This represents a significant cost reduction. We recommend scheduling a call with Credex to explore additional infrastructure credits.`;
-    } else {
-      summary += `Implementing these changes requires minimal disruption and can be completed within one billing cycle.`;
-    }
-  } else {
-    summary += `Your current stack is well-optimized with no immediate savings opportunities. Consider revisiting quarterly as AI tool pricing changes frequently.`;
-  }
-
-  return summary;
-};
+// Secondary/Free Tier: Google Gemini (Free up to 15 RPM)
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 const generateSummary = async (auditData) => {
-  // Always try AI-powered summary first
-  try {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error('No API key configured');
-    }
-
-    const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 300,
-      messages: [{ 
-        role: "user", 
-        content: `You are a CFO-level AI spend analyst. Generate a concise ~120-word audit summary for this team's AI tool spend data. For each recommendation, explicitly mention what they are currently paying versus the new price after optimization. Include specific dollar amounts, name the tools, and give 2-3 concrete recommendations. Be direct and professional.
-
-Audit Data:
-- Team Size: ${auditData.originalData?.teamSize || 'Unknown'}
-- Use Case: ${auditData.originalData?.useCase || 'Mixed'}
-- Monthly Spend: $${auditData.toolResults?.reduce((s, t) => s + Number(t.spend || 0), 0)}/mo
-- Potential Monthly Savings: $${Math.round(auditData.totalMonthlySavings || 0)}/mo
-- Tools: ${JSON.stringify(auditData.toolResults?.map(t => ({
-          tool: t.toolId,
-          plan: t.planId,
-          spend: t.spend,
-          seats: t.seats,
-          action: t.result?.recommendedAction,
-          recommendedSpend: Math.round(t.result?.newSpend || 0),
-          savings: Math.round(t.result?.savings || 0)
-        })) || [])}
-
-Write a professional, data-rich executive summary paragraph. No headers, bullets, or markdown—just a single cohesive paragraph.`
-      }],
-    });
+  const prompt = `
+    You are a professional financial auditor specializing in SaaS and AI tool spend.
+    Generate a concise (~100 words) executive summary for a company's AI spend audit.
     
-    return response.content[0].text;
-  } catch (error) {
-    console.error("Anthropic API Error:", error.message);
-    // Use intelligent data-driven fallback
-    return generateFallbackSummary(auditData);
+    Audit Data:
+    - Total Monthly Savings identified: $${auditData.totalMonthlySavings}
+    - Total Annual Savings identified: $${auditData.totalAnnualSavings}
+    - Team Size: ${auditData.originalData?.teamSize || 'Unknown'}
+    - Use Case: ${auditData.originalData?.useCase || 'General'}
+    
+    Individual Tool Results:
+    ${auditData.toolResults.map(t => `- ${t.toolId}: Current $${t.spend}/mo. Recommendation: ${t.result.recommendedAction}. Reason: ${t.result.reason}`).join('\n')}
+
+    Requirements:
+    1. Be professional yet punchy.
+    2. Highlight the single biggest savings opportunity.
+    3. Mention the "current spend vs recommended price" to show clear value.
+    4. End with a 1-sentence call to action.
+    5. Do not use markdown headers or bolding, just plain text.
+  `;
+
+  // 1. Try Anthropic first (Assignment Preference)
+  if (anthropic) {
+    try {
+      const response = await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      return response.content[0].text;
+    } catch (error) {
+      console.error("Anthropic API failed, trying Gemini...");
+    }
   }
+
+  // 2. Try Gemini (Free Alternative)
+  if (genAI) {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error("Gemini API failed, falling back to template...");
+    }
+  }
+
+  // 3. Fallback: Templated Logic
+  return generateFallbackSummary(auditData);
+};
+
+const generateFallbackSummary = (auditData) => {
+  const { totalAnnualSavings, toolResults } = auditData;
+  const bestSaving = [...toolResults].sort((a, b) => b.result.savings - a.result.savings)[0];
+  
+  if (!bestSaving || totalAnnualSavings === 0) {
+    return "Your AI stack is currently highly optimized. We found no significant waste across your tools. We recommend staying on your current plans and checking back in 3 months as new enterprise credits become available through Credex.";
+  }
+
+  return `We identified a significant optimization opportunity in your AI stack with total projected annual savings of $${totalAnnualSavings.toLocaleString()}. The biggest win is with ${bestSaving.toolId}, where you are currently overpaying. By implementing our recommended action of "${bestSaving.result.recommendedAction}", you can drastically reduce your monthly burn while maintaining the same level of capability. This audit represents a clear path to higher efficiency. We recommend booking a Credex consultation to capture these savings immediately.`;
 };
 
 module.exports = { generateSummary };
