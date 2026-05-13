@@ -9,7 +9,11 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [process.env.FRONTEND_URL, "https://spendlens-1.onrender.com", "http://localhost:5173", "http://localhost:5174"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 app.use("/api", auditLimiter); // Apply rate limit to all api routes
 
